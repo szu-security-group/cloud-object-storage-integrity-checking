@@ -1,0 +1,13 @@
+# Eclipse
+.settings/
+
+# Intellij IDEA
+.idea/
+*.iml
+
+# build output
+bin/
+target/
+
+# secret
+COS.properties
