@@ -14,8 +14,11 @@ import com.fchen_group.CloudObjectStorageIntegrityChecking.main.CloudObjectStora
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.Key;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ChallengeData;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ProofData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Client {
+    private static Logger logger = LoggerFactory.getLogger("client");
     private String command;
     private String filePath;
     String propertiesFilePath;
@@ -27,8 +30,10 @@ public class Client {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 2 && args[0].equals("audit")) {
+            logger.info("Start audit process.");
             new Client(args[0], args[1]).run();
         } else if (args.length == 3 && args[0].equals("outsource")) {
+            logger.info("Start outsource process.");
             new Client(args[0], args[1], Integer.parseInt(args[2])).run();
         } else {
             show_help();
@@ -92,7 +97,10 @@ public class Client {
                     })
                     .option(ChannelOption.TCP_NODELAY, true);
 
-            ChannelFuture f = b.connect("localhost", 9999).sync();
+            String serverAddress = "localhost";
+            int serverPort = 9999;
+            logger.info("Connect to {}:{}.", serverAddress, serverPort);
+            ChannelFuture f = b.connect(serverAddress, serverPort).sync();
             f.channel().closeFuture().sync();
 
         } finally {
@@ -112,6 +120,7 @@ public class Client {
             FileOutputStream keyFOS = new FileOutputStream(keyFile);
             keyFOS.write(serialize(key));
             keyFOS.close();
+            logger.info("Generate key and store it to {}", keyFile);
 
             // outsource
             BigInteger[] tags = cloudObjectStorageIntegrityChecking.outsource(key);
@@ -124,10 +133,10 @@ public class Client {
             for (BigInteger tag : tags) {
                 String tagString = tag.toString();
                 tagsBufferedWriter.write(("0000000000000000000000000000000000000000" + tagString).substring(tagString.length()));
-                System.out.println(tagString);
                 tagsBufferedWriter.newLine();
             }
             tagsBufferedWriter.close();
+            logger.info("Calculate tags and store it to {}", tagsFile);
 
             // store SECTOR_NUMBER and BLOCK_NUMBER to file
             File propertiesFile = new File(propertiesFilePath);
@@ -139,8 +148,10 @@ public class Client {
             properties.store(propertiesFOS, "SECTOR_NUMBER: the number of sectors in a block\n" +
                     "BLOCK_NUMBER: the number of blocks of the file");
             propertiesFOS.close();
+            logger.info("Store SECTOR_NUMBER and BLOCK_NUMBER to {}", propertiesFilePath);
 
             // send file
+            logger.info("Send source file {}", filePath);
             CoolProtocol coolProtocol = new CoolProtocol(0, filePath.getBytes());
             ctx.writeAndFlush(coolProtocol);
         }
@@ -149,12 +160,15 @@ public class Client {
         public void channelRead0(ChannelHandlerContext ctx, Object msg) {
             switch (((CoolProtocol) msg).op) {
                 case 0:
+                    logger.info("Send properties file {}", propertiesFilePath);
                     ctx.writeAndFlush(new CoolProtocol(1, propertiesFilePath.getBytes()));
                     break;
                 case 1:
+                    logger.info("Send tags file {}", tagsFilePath);
                     ctx.writeAndFlush(new CoolProtocol(2, tagsFilePath.getBytes()));
                     break;
                 case 2:
+                    logger.info("Finish outsource process");
                     ctx.close();
                     break;
             }
@@ -171,12 +185,19 @@ public class Client {
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             challengeData = cloudObjectStorageIntegrityChecking.audit(460);
+            logger.info("Send challenge data");
             CoolProtocol coolProtocol = new CoolProtocol(3, (filePath + ".challenge").getBytes(), serialize(challengeData));
             ctx.writeAndFlush(coolProtocol);
         }
 
         @Override
         public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+            // receive proof data
+            CoolProtocol coolProtocolReceived = (CoolProtocol) msg;
+            ProofData proofData = (ProofData) deserialize(coolProtocolReceived.content);
+            ctx.close();
+            logger.info("Receive proof data");
+
             // get key
             Key key;
             try {
@@ -190,14 +211,12 @@ public class Client {
                 e.printStackTrace();
                 return;
             }
-
-            // receive proof data
-            CoolProtocol coolProtocolReceived = (CoolProtocol) msg;
-            ProofData proofData = (ProofData) deserialize(coolProtocolReceived.content);
-            ctx.close();
+            logger.info("Get key from {}.", keyFilePath);
 
             // verify
+            logger.info("Verifying proof.");
             boolean verifyResult = cloudObjectStorageIntegrityChecking.verify(key, challengeData, proofData);
+            logger.info("Verify result is {}", verifyResult);
             if (verifyResult)
                 System.out.println("Verify pass");
             else
@@ -225,7 +244,7 @@ public class Client {
     }
 
     public static void show_help() {
-        System.out.printf("使用方法：\n" +
+        System.out.print("使用方法：\n" +
                 "客户端在审计过程中有两个阶段：outsource 阶段和 audit 阶段\n" +
                 "\n" +
                 "启动 outsource 的命令为：\n" +
@@ -240,19 +259,5 @@ public class Client {
                 "注：\n" +
                 "    运行 audit 需要 outsource 阶段生成的三个文件：\n" +
                 "        [filename].key  [filename].tags  [filename].properties\n");
-    }
-
-    public static void print(byte[] data) {
-        for (int i = 0; i < 10; i++) {
-            System.out.print(String.format("%02x ", data[i]));
-        }
-        System.out.println();
-    }
-
-    public static void print(byte[][] data) {
-        for (int i = 0; i < 10; i++) {
-            System.out.print(String.format("%02x ", data[0][i]));
-        }
-        System.out.println();
     }
 }
