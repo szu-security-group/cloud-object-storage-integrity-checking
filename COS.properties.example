@@ -1,2 +1,4 @@
 secretId = replace_with_secretId
 secretKey = replace_with_secretKey
+region = replace_with_region
+bucket = replace_with_bucket
