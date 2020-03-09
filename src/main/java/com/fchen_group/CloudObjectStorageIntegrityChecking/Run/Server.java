@@ -30,6 +30,7 @@ public class Server {
     private String COSSecretKey;
     private COSClient cosClient;
     private String bucketName;
+    private CloudAPI cloudAPI;
 
     public static void main(String[] args) throws Exception {
         if (args.length == 2) {
@@ -62,6 +63,8 @@ public class Server {
         cosClient = new COSClient(cred, clientConfig);
         // 设置 BucketName-APPID
         bucketName = "crypto2019-1254094112";
+
+        this.cloudAPI = new CloudAPI(this.COSConfigFilePath);
     }
 
     public void run() throws Exception {
@@ -178,60 +181,30 @@ public class Server {
         int SECTOR_NUMBER = Integer.parseInt(properties.getProperty("SECTOR_NUMBER"));
         CloudObjectStorageIntegrityChecking cloudObjectStorageIntegrityChecking = new CloudObjectStorageIntegrityChecking(filePath, BLOCK_NUMBER, SECTOR_NUMBER);
 
-        // initial cos
-        COSObject cosObject;
-        InputStream cloudFileIn;
         // 声明下载源文件所需变量
-        GetObjectRequest getSourceFileRequest = new GetObjectRequest(bucketName, cloudFileName);
-        long blockStart, blockEnd;
-        byte[] sourceFileBlock = new byte[SECTOR_NUMBER * 16];
+        long blockStart;
+        byte[] sourceFileBlock;
         byte[][][] sourceFileData = new byte[challengeData.indices.length][SECTOR_NUMBER][16];
         // 声明下载 tags 文件所需变量
-        GetObjectRequest getTagsFileRequest = new GetObjectRequest(bucketName, cloudFileName + ".tags");
-        long tagsStart, tagsEnd;
-        byte[] tagsFileDataTemp = new byte[40];
+        long tagsStart;
+        byte[] tagsFileBlock;
         BigInteger[] tags = new BigInteger[BLOCK_NUMBER];
         // get source file and tags file data from cloud
         for (int i = 0; i < challengeData.indices.length; i++) {
             System.out.println(i);
             // source file
             blockStart = (long) challengeData.indices[i] * SECTOR_NUMBER * 16;
-            blockEnd = (long) (challengeData.indices[i] + 1) * SECTOR_NUMBER * 16;
-            getSourceFileRequest.setRange(blockStart, blockEnd - 1);
-            cosObject = cosClient.getObject(getSourceFileRequest);
-            cloudFileIn = cosObject.getObjectContent();
-            Arrays.fill(sourceFileBlock, (byte) 0);
-            try {
-                for (int n = 0; n != -1; ) {
-                    n = cloudFileIn.read(sourceFileBlock, 0, sourceFileBlock.length);
-                }
-                cloudFileIn.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            sourceFileBlock = cloudAPI.downloadPartFile(cloudFileName, blockStart, SECTOR_NUMBER * 16);
             for (int j = 0; j < SECTOR_NUMBER; j++) {
                 sourceFileData[i][j] = Arrays.copyOfRange(sourceFileBlock, j * 16, (j + 1) * 16);
                 if (challengeData.indices[i] == 0 && j == 0 && sourceFileData[i][j][0] == 67) {
                     System.out.println("error");
                 }
             }
-
             // tags file
             tagsStart = (long) challengeData.indices[i] * (40 + 2);  // 2 => "\r\n"
-            tagsEnd = tagsStart + 40 - 1;
-            getTagsFileRequest.setRange(tagsStart, tagsEnd);
-            cosObject = cosClient.getObject(getTagsFileRequest);
-            cloudFileIn = cosObject.getObjectContent();
-            Arrays.fill(tagsFileDataTemp, (byte) 0);
-            try {
-                for (int n = 0; n != -1; ) {
-                    n = cloudFileIn.read(tagsFileDataTemp, 0, tagsFileDataTemp.length);
-                }
-                cloudFileIn.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            tags[challengeData.indices[i]] = new BigInteger(new String(tagsFileDataTemp));
+            tagsFileBlock = cloudAPI.downloadPartFile(cloudFileName + ".tags", tagsStart, 40);
+            tags[challengeData.indices[i]] = new BigInteger(new String(tagsFileBlock));
         }
 
         // calc Proof and return
