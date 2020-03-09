@@ -129,7 +129,7 @@ public class Server {
                     fileOutputStream.write(coolProtocolReceived.content);
                     fileOutputStream.close();
                     // upload file
-                    uploadFile(pathPrefix + filename, filename);
+                    cloudAPI.uploadFile(pathPrefix + filename, filename);
                     // delete file
                     if (needDelete) {
                         file.delete();
@@ -159,11 +159,6 @@ public class Server {
                     System.out.println("Invalid op");
             }
         }
-    }
-
-    public void uploadFile(String localFileName, String cloudFileName) {
-        File localFile = new File(localFileName);
-        PutObjectResult putObjectResult = cosClient.putObject(bucketName, cloudFileName, localFile);
     }
 
     public ProofData prove(String filePath, ChallengeData challengeData, String cloudFileName) throws Exception {
