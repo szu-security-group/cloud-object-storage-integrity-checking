@@ -5,19 +5,11 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Properties;
 
-import com.qcloud.cos.model.COSObject;
-import com.qcloud.cos.model.GetObjectRequest;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import com.qcloud.cos.COSClient;
-import com.qcloud.cos.ClientConfig;
-import com.qcloud.cos.auth.COSCredentials;
-import com.qcloud.cos.auth.BasicCOSCredentials;
-import com.qcloud.cos.region.Region;
-import com.qcloud.cos.model.PutObjectResult;
 
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.CloudObjectStorageIntegrityChecking;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ChallengeData;
@@ -25,11 +17,6 @@ import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ProofData;
 
 public class Server {
     private String pathPrefix;
-    private String COSConfigFilePath;
-    private String COSSecretId;
-    private String COSSecretKey;
-    private COSClient cosClient;
-    private String bucketName;
     private CloudAPI cloudAPI;
 
     public static void main(String[] args) throws Exception {
@@ -42,29 +29,7 @@ public class Server {
 
     public Server(String pathPrefix, String COSConfigFilePath) {
         this.pathPrefix = pathPrefix;
-        this.COSConfigFilePath = COSConfigFilePath;
-        // 从配置文件获取 COSSecretId, COSSecretKey
-        try {
-            FileInputStream propertiesFIS = new FileInputStream(COSConfigFilePath);
-            Properties properties = new Properties();
-            properties.load(propertiesFIS);
-            propertiesFIS.close();
-            COSSecretId = properties.getProperty("secretId");
-            COSSecretKey = properties.getProperty("secretKey");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        // 初始化用户身份信息（COSSecretId, COSSecretKey）。
-        COSCredentials cred = new BasicCOSCredentials(COSSecretId, COSSecretKey);
-        // 设置 bucket 的区域
-        Region region = new Region("ap-chengdu");
-        ClientConfig clientConfig = new ClientConfig(region);
-        // 生成 cos 客户端。
-        cosClient = new COSClient(cred, clientConfig);
-        // 设置 BucketName-APPID
-        bucketName = "crypto2019-1254094112";
-
-        this.cloudAPI = new CloudAPI(this.COSConfigFilePath);
+        this.cloudAPI = new CloudAPI(COSConfigFilePath);
     }
 
     public void run() throws Exception {
@@ -78,7 +43,7 @@ public class Server {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        protected void initChannel(SocketChannel ch) throws Exception {
+                        protected void initChannel(SocketChannel ch) {
                             // 添加自定义协议的编解码工具
                             ch.pipeline().addLast(new CoolProtocolEncoder());
                             ch.pipeline().addLast(new CoolProtocolDecoder());
@@ -102,7 +67,7 @@ public class Server {
         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
             int filePathLength = 0;
             byte[] filePathBytes;
-            String filePath = "";
+            String filePath;
             CoolProtocol coolProtocol;
             CoolProtocol coolProtocolReceived = (CoolProtocol) msg;
 
@@ -165,7 +130,6 @@ public class Server {
         String filename = filePath;
         filePath = pathPrefix + filename;
         String propertiesFilePath = filePath + ".properties";
-        String tagsFilePath = filePath + ".tags";
 
         // get BLOCK_NUMBER and SECTOR_NUMBER
         FileInputStream propertiesFIS = new FileInputStream(propertiesFilePath);
