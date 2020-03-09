@@ -14,8 +14,11 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.CloudObjectStorageIntegrityChecking;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ChallengeData;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ProofData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Server {
+    private static Logger logger = LoggerFactory.getLogger("server");
     private String pathPrefix;
     private CloudAPI cloudAPI;
 
@@ -54,6 +57,7 @@ public class Server {
                     .option(ChannelOption.SO_BACKLOG, 1024) // 设置tcp缓冲区
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
+            logger.info("Start server and listen at port 9999.");
             ChannelFuture f = b.bind(9999).sync();
             f.channel().closeFuture().sync();
         } finally {
@@ -93,11 +97,14 @@ public class Server {
                     FileOutputStream fileOutputStream = new FileOutputStream(file);
                     fileOutputStream.write(coolProtocolReceived.content);
                     fileOutputStream.close();
+                    logger.info("Receive {}.", filename);
                     // upload file
                     cloudAPI.uploadFile(pathPrefix + filename, filename);
+                    logger.info("Upload {} to cloud.", filename);
                     // delete file
                     if (needDelete) {
                         file.delete();
+                        logger.info("Delete {}", filename);
                     }
 
                     // send confirm
@@ -113,9 +120,14 @@ public class Server {
                     filePathBytes = new byte[filePathLength];
                     System.arraycopy(filename.getBytes(), 0, filePathBytes, 0, filePathLength);
                     filePath = new String(filePathBytes);
+                    logger.info("Receive audit request. Audit file is {}", filePath);
                     ChallengeData challengeData = (ChallengeData) deserialize(coolProtocolReceived.content);
+                    logger.info("Receive challenge data.");
+                    logger.info("Start prove process.");
                     ProofData proofData = prove(filePath, challengeData, filePath);
+                    logger.info("Finish prove process.");
                     String proofFilePath = pathPrefix + filePath + ".proof";
+                    logger.info("Send proof data.");
                     coolProtocol = new CoolProtocol(5, proofFilePath.getBytes(), serialize(proofData));
                     ctx.writeAndFlush(coolProtocol);
                     break;
@@ -132,12 +144,14 @@ public class Server {
         String propertiesFilePath = filePath + ".properties";
 
         // get BLOCK_NUMBER and SECTOR_NUMBER
+        logger.info("Get BLOCK_NUMBER and SECTOR_NUMBER from file {}.", propertiesFilePath);
         FileInputStream propertiesFIS = new FileInputStream(propertiesFilePath);
         Properties properties = new Properties();
         properties.load(propertiesFIS);
         propertiesFIS.close();
         int BLOCK_NUMBER = Integer.parseInt(properties.getProperty("BLOCK_NUMBER"));
         int SECTOR_NUMBER = Integer.parseInt(properties.getProperty("SECTOR_NUMBER"));
+        logger.info("BLOCK_NUMBER: {}, SECTOR_NUMBER: {}.", BLOCK_NUMBER, SECTOR_NUMBER);
         CloudObjectStorageIntegrityChecking cloudObjectStorageIntegrityChecking = new CloudObjectStorageIntegrityChecking(filePath, BLOCK_NUMBER, SECTOR_NUMBER);
 
         // 声明下载源文件所需变量
@@ -149,8 +163,11 @@ public class Server {
         byte[] tagsFileBlock;
         BigInteger[] tags = new BigInteger[BLOCK_NUMBER];
         // get source file and tags file data from cloud
+        logger.info("Getting source file and tags file data from cloud.");
         for (int i = 0; i < challengeData.indices.length; i++) {
-            System.out.println(i);
+            if ((i + 1) % (challengeData.indices.length/10) == 0) {
+                logger.info("Progress rate: {}%.", (i + 1) * 100 / challengeData.indices.length);
+            }
             // source file
             blockStart = (long) challengeData.indices[i] * SECTOR_NUMBER * 16;
             sourceFileBlock = cloudAPI.downloadPartFile(cloudFileName, blockStart, SECTOR_NUMBER * 16);
@@ -167,6 +184,7 @@ public class Server {
         }
 
         // calc Proof and return
+        logger.info("Calculate proof.");
         return cloudObjectStorageIntegrityChecking.prove(sourceFileData, tags, challengeData);
     }
 
@@ -185,25 +203,9 @@ public class Server {
 
     public static void show_help() {
         System.out.println("使用方法：\n" +
-                "    java -jar server.jar [tempPath] [COSConfigFilePath]\n" +
+                "    java -jar server.jar [tempPath] [COSPropertiesPath]\n" +
                 "其中：\n" +
-                "    tempPath 是服务器用于暂存客户端上传来的文件的地方\n" +
-                "    COSConfigFilePath 是保存 COS 密钥信息等的配置文件的路径\n");
-    }
-
-    public static void print(byte[] data) {
-        for (int i = 0; i < 10; i++) {
-            System.out.print(String.format("%02x ", data[i]));
-        }
-        System.out.println();
-    }
-
-    public static void print(byte[][] data) {
-        if (data == null)
-            return;
-        for (int i = 0; i < 10; i++) {
-            System.out.print(String.format("%02x ", data[0][i]));
-        }
-        System.out.println();
+                "    tempPath 是服务器用于暂存客户端上传来的文件的目录\n" +
+                "    COSPropertiesPath 是保存 COS 密钥信息等的配置文件的路径\n");
     }
 }
