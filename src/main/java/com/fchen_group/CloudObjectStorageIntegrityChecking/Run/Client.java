@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 
 public class Client {
     private static Logger logger = LoggerFactory.getLogger("client");
+    private static String serverAddress;
+    private static int serverPort;
     private String command;
     private String filePath;
     String propertiesFilePath;
@@ -30,12 +32,14 @@ public class Client {
     private ChallengeData challengeData;
 
     public static void main(String[] args) throws Exception {
-        if (args.length == 2 && args[0].equals("audit")) {
+        if (args.length == 3 && args[1].equals("audit")) {
+            serverAddress = args[0];
             logger.info("Start audit process.");
-            new Client(args[0], args[1]).run();
-        } else if (args.length == 3 && args[0].equals("outsource")) {
+            new Client(args[1], args[2]).run();
+        } else if (args.length == 4 && args[1].equals("outsource")) {
+            serverAddress = args[0];
             logger.info("Start outsource process.");
-            new Client(args[0], args[1], Integer.parseInt(args[2])).run();
+            new Client(args[1], args[2], Integer.parseInt(args[3])).run();
         } else {
             show_help();
         }
@@ -98,8 +102,7 @@ public class Client {
                     })
                     .option(ChannelOption.TCP_NODELAY, true);
 
-            String serverAddress = "localhost";
-            int serverPort = 9999;
+            serverPort = 9999;
             logger.info("Connect to {}:{}.", serverAddress, serverPort);
             ChannelFuture f = b.connect(serverAddress, serverPort).sync();
             f.channel().closeFuture().sync();
@@ -251,14 +254,14 @@ public class Client {
                 "客户端在审计过程中有两个阶段：outsource 阶段和 audit 阶段\n" +
                 "\n" +
                 "启动 outsource 的命令为：\n" +
-                "    java -jar client.jar outsource [filename] [SECTOR_NUMBER]\n" +
+                "    java -jar client.jar [SERVER_IP] outsource [filename] [SECTOR_NUMBER]\n" +
                 "注：\n" +
                 "    在 outsource 完成之后，程序会在文件所在目录生成以下文件\n" +
                 "        [filename].key  [filename].tags  [filename].properties\n" +
                 "    这三个文件在 audit 阶段中需要用到，请妥善保管好！\n" +
                 "\n" +
                 "启动 audit 的命令为：\n" +
-                "    java -jar client.jar audit [filename]\n" +
+                "    java -jar client.jar [SERVER_IP] audit [filename]\n" +
                 "注：\n" +
                 "    运行 audit 需要 outsource 阶段生成的三个文件：\n" +
                 "        [filename].key  [filename].tags  [filename].properties\n");
