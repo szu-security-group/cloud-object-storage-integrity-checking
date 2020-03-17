@@ -178,9 +178,9 @@ public class Server {
                 }
             }
             // tags file
-            tagsStart = (long) challengeData.indices[i] * (40 + 2);  // 2 => "\r\n"
-            tagsFileBlock = cloudAPI.downloadPartFile(cloudFileName + ".tags", tagsStart, 40);
-            tags[challengeData.indices[i]] = new BigInteger(new String(tagsFileBlock));
+            tagsStart = (long) challengeData.indices[i] * 17;
+            tagsFileBlock = cloudAPI.downloadPartFile(cloudFileName + ".tags", tagsStart, 17);
+            tags[challengeData.indices[i]] = new BigInteger(tagsFileBlock);
         }
 
         // calc Proof and return

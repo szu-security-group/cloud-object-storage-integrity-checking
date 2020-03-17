@@ -2,6 +2,7 @@ package com.fchen_group.CloudObjectStorageIntegrityChecking.Run;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Properties;
 
 import io.netty.bootstrap.Bootstrap;
@@ -125,17 +126,19 @@ public class Client {
             // outsource
             BigInteger[] tags = cloudObjectStorageIntegrityChecking.outsource(key);
             // store tags
+            byte[] bytesFromTag;
+            byte[] bytesToWrite = new byte[17];
             File tagsFile = new File(tagsFilePath);
             if (!tagsFile.exists())
                 tagsFile.createNewFile();
             FileOutputStream tagsFOS = new FileOutputStream(tagsFile);
-            BufferedWriter tagsBufferedWriter = new BufferedWriter(new OutputStreamWriter(tagsFOS));
             for (BigInteger tag : tags) {
-                String tagString = tag.toString();
-                tagsBufferedWriter.write(("0000000000000000000000000000000000000000" + tagString).substring(tagString.length()));
-                tagsBufferedWriter.newLine();
+                bytesFromTag = tag.toByteArray();
+                Arrays.fill(bytesToWrite, (byte) 0);
+                System.arraycopy(bytesFromTag, 0, bytesToWrite, 17 - bytesFromTag.length, bytesFromTag.length);
+                tagsFOS.write(bytesToWrite);
             }
-            tagsBufferedWriter.close();
+            tagsFOS.close();
             logger.info("Calculate tags and store it to {}", tagsFile);
 
             // store SECTOR_NUMBER and BLOCK_NUMBER to file
