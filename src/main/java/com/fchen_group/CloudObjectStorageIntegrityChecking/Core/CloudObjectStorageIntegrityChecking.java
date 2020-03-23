@@ -4,21 +4,11 @@ import java.io.*;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Arrays;
-// import java.util.Properties;
 import java.util.Random;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
-
-// import com.qcloud.cos.COSClient;
-// import com.qcloud.cos.ClientConfig;
-// import com.qcloud.cos.auth.COSCredentials;
-// import com.qcloud.cos.auth.BasicCOSCredentials;
-// import com.qcloud.cos.model.COSObject;
-// import com.qcloud.cos.region.Region;
-// import com.qcloud.cos.model.GetObjectRequest;
-// import com.javamex.classmexer.MemoryUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +18,7 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
     private final BigInteger p = new BigInteger("100000000000000000000000000000033", 16);  // 2^128 + 51
     private int BLOCK_NUMBER;
     private int SECTOR_NUMBER;
-    private final int sectorLen = 16;  // 16byes = 128bits
+    private final int sectorLen = 16;  // 16bytes = 128bits
     private Mac mac;
     private String filePath;
 
@@ -50,14 +40,15 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
     }
 
     /**
-     * Key generation function, executed only once
+     * Key generation function, executed only once.
+     * @return the generated key
      */
     public Key keyGen() {
         logger = LoggerFactory.getLogger("keyGen");
 
         Key key = new Key("", new BigInteger[this.SECTOR_NUMBER]);
 
-        // generate KeyPRF 16bytes = 128bit
+        // generate KeyPRF
         String chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         Random KmacRandom = new Random();
         StringBuilder KeyPRF = new StringBuilder();
@@ -67,7 +58,7 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
         key.KeyPRF = KeyPRF.toString();
         logger.debug("KeyPRF: {}", key.KeyPRF);
 
-        // generate a
+        // generate s random elements {α1, ..., αs}
         Random random = new Random();
         for (int i = 0; i < this.SECTOR_NUMBER; i++) {
             key.a[i] = (new BigInteger(this.p.bitLength(), random)).mod(this.p);
@@ -78,38 +69,34 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
     }
 
     /**
-     * Error-correcting coding of the source data
+     * Calculate the tags of the source data.
+     * @param key : the key generated in keyGen
+     * @return tags of the source data
      */
     public BigInteger[] outsource(Key key) {
         logger = LoggerFactory.getLogger("outsource");
 
-        // 原文件𝑀分割为𝑛块大小为𝑠 sectors的block 𝑀 => sourceFileData
-        // 对每一数据块，计算标签
+        // Divide the original file M into n blocks. Each block is further divided into s sectors.
+        // For each blocks, calculate its tag.
         BigInteger[] tags = new BigInteger[this.BLOCK_NUMBER];
         try {
             FileInputStream in = new FileInputStream(filePath);
             byte[] sourceFileDataBlock = new byte[this.SECTOR_NUMBER * this.sectorLen];
             for (int i = 0; i < this.BLOCK_NUMBER; i++) {
-                // 读取 1 个 block 大小的文件
+                // Read a 1 block size data of source file data
                 Arrays.fill(sourceFileDataBlock, (byte) 0);
                 if (in.read(sourceFileDataBlock) == -1) {
                     logger.info("Read file complete");
                 }
 
+                // calculate tag for this block
                 BigInteger am = new BigInteger("0");
                 for (int j = 0; j < this.SECTOR_NUMBER; j++) {
                     byte[] sourceFileDataSector = Arrays.copyOfRange(sourceFileDataBlock, j * this.sectorLen, (j + 1) * this.sectorLen);
                     BigInteger mij = new BigInteger(byteToBit(sourceFileDataSector), 2);
                     am = am.add(key.a[j].multiply(mij).mod(this.p)).mod(this.p);
-
-                    // logger.debug("a[{}]: {}", j, this.a[j]);
-                    // logger.debug("m[{}][{}]: {}", i, j, mij);
-                    // logger.debug("am: {}", am);
                 }
                 tags[i] = funcPRF(key, i).add(am).mod(this.p);
-                // logger.debug("funcPRF({}): {}", i, funcPRF(i));
-                // logger.debug("am: {}", am);
-                // logger.debug("this.o[{}]: {}", i, this.o[i]);
             }
             in.close();
         } catch (IOException e) {
@@ -119,6 +106,12 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
         return tags;
     }
 
+    /**
+     * The pseudorandom function to generate random number.
+     * @param key : the key generated in keyGen
+     * @param index : index of the block in the source data
+     * @return a pseudorandom number
+     */
     private BigInteger funcPRF(Key key, int index) {
         // prepare PRF function
         try {
@@ -131,35 +124,39 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
             e.printStackTrace();
         }
 
+        // generate pseudorandom number
         byte[] result = this.mac.doFinal(Integer.toString(index).getBytes());
         return new BigInteger(byteToBit(result), 2);
     }
 
     /**
-     * Generate audit indexes and coefficients based on challenge length
+     * Generate audit indexes and coefficients based on challenge length.
+     * @param challengeLen : length of challenge (default is 460)
+     * @return challenge which will be sent to sever
      */
     public ChallengeData audit(int challengeLen) {
-        logger = LoggerFactory.getLogger("audit");
-        logger.debug("START");
-
         Random random = new Random();
-        // 随机选择 𝑙 个数据块索引 𝑖 和随机系数 vi
+        // Randomly select l indices of source data block
+        // and the coefficients that correspond to the challenged data block.
         ChallengeData challengeData = new ChallengeData(new int[challengeLen], new BigInteger[challengeLen]);
         for (int i = 0; i < challengeLen; i++) {
             challengeData.indices[i] = random.nextInt(this.BLOCK_NUMBER);
             challengeData.coefficients[i] = (new BigInteger(this.p.bitLength(), random)).mod(this.p);
-            // logger.debug("challengeData.indices[{}]: {}", i, challengeData.indices[i]);
-            // logger.debug("challengeData.coefficients[{}]: {}", i, challengeData.coefficients[i]);
         }
-
-        logger.debug("END");
         return challengeData;
     }
 
     /**
-     * When the server receives the chal, it calculates the corresponding Proof
+     * Read source file blocks from file in local and call the real prove function.
+     *
+     * !! This function is only called in benchmark !!
+     *
+     * @param tags : tag blocks which indices are in challenge
+     * @param challengeData : challenge sent by client
+     * @return proof calculated by server
      */
     public ProofData prove(BigInteger[] tags, ChallengeData challengeData) {
+        // read file from local storage
         byte[][][] sourceFileData = new byte[challengeData.indices.length][this.SECTOR_NUMBER][this.sectorLen];
         try {
             RandomAccessFile randomAccessFile = new RandomAccessFile(this.filePath, "r");
@@ -172,15 +169,21 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // call the real prove function
         return this.prove(sourceFileData, tags, challengeData);
     }
 
+    /**
+     * When the server receives the challenge, it calculates the corresponding Proof.
+     * @param sourceFileData : source file blocks which indices are in challenge
+     * @param tags : tag blocks which indices are in challenge
+     * @param challengeData : challenge sent by client
+     * @return proof calculated by server
+     */
     public ProofData prove(byte[][][] sourceFileData, BigInteger[] tags, ChallengeData challengeData) {
-        logger = LoggerFactory.getLogger("prove");
-        logger.debug("START");
-
         ProofData proofData = new ProofData(new BigInteger[this.SECTOR_NUMBER], new BigInteger("0"));
-        // calc u
+        // calculate u of proof
         proofData.u = new BigInteger[this.SECTOR_NUMBER];
         for (int j = 0; j < this.SECTOR_NUMBER; j++) {
             proofData.u[j] = new BigInteger("0");
@@ -188,25 +191,23 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
                 BigInteger mij = new BigInteger(byteToBit(sourceFileData[i][j]), 2);
                 proofData.u[j] = proofData.u[j].add(challengeData.coefficients[i].multiply(mij).mod(this.p)).mod(this.p);
             }
-            // logger.debug("this.u[{}]: {}", j, this.u[j]);
         }
-        // calc o
+        // calculate o of proof
         for (int i = 0; i < challengeData.indices.length; i++) {
             proofData.o = proofData.o.add(challengeData.coefficients[i].multiply(tags[challengeData.indices[i]]).mod(this.p)).mod(this.p);
         }
-        logger.debug("server_o: {}", proofData.o);
 
-        logger.debug("END");
         return proofData;
     }
 
     /**
-     * Verify the correctness of proof returned from the cloud
+     * Verify the correctness of proof returned from the cloud.
+     * @param key : the key generated in keyGen
+     * @param challengeData : proof calculated by client
+     * @param proofData : proof calculated by server
+     * @return verify result in boolean
      */
     public boolean verify(Key key, ChallengeData challengeData, ProofData proofData) {
-        logger = LoggerFactory.getLogger("verify");
-        logger.debug("START");
-
         BigInteger sumOFvf = new BigInteger("0");
         for (int i = 0; i < challengeData.indices.length; i++) {
             sumOFvf = sumOFvf.add(challengeData.coefficients[i].multiply(funcPRF(key, challengeData.indices[i])).mod(this.p)).mod(this.p);
@@ -218,9 +219,6 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
         }
 
         BigInteger new_o = sumOFvf.add(sumOFau).mod(this.p);
-        logger.debug("new_o: {}", new_o);
-
-        logger.debug("END");
         return new_o.equals(proofData.o);
     }
 
