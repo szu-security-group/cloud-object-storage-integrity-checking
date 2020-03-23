@@ -91,8 +91,8 @@ public class Client {
                         @Override
                         protected void initChannel(SocketChannel ch) {
                             // 添加自定义协议的编解码工具
-                            ch.pipeline().addLast(new CoolProtocolEncoder());
-                            ch.pipeline().addLast(new CoolProtocolDecoder());
+                            ch.pipeline().addLast(new FileTransferProtocolEncoder());
+                            ch.pipeline().addLast(new FileTransferProtocolDecoder());
                             // 处理客户端操作
                             if (command.equals("outsource"))
                                 ch.pipeline().addLast(new ClientOutsourceHandler());
@@ -158,20 +158,20 @@ public class Client {
 
             // send file
             logger.info("Send source file {}", filePath);
-            CoolProtocol coolProtocol = new CoolProtocol(0, filePath.getBytes());
-            ctx.writeAndFlush(coolProtocol);
+            FileTransferProtocol fileTransferProtocol = new FileTransferProtocol(0, filePath.getBytes());
+            ctx.writeAndFlush(fileTransferProtocol);
         }
 
         @Override
         public void channelRead0(ChannelHandlerContext ctx, Object msg) {
-            switch (((CoolProtocol) msg).op) {
+            switch (((FileTransferProtocol) msg).op) {
                 case 0:
                     logger.info("Send properties file {}", propertiesFilePath);
-                    ctx.writeAndFlush(new CoolProtocol(1, propertiesFilePath.getBytes()));
+                    ctx.writeAndFlush(new FileTransferProtocol(1, propertiesFilePath.getBytes()));
                     break;
                 case 1:
                     logger.info("Send tags file {}", tagsFilePath);
-                    ctx.writeAndFlush(new CoolProtocol(2, tagsFilePath.getBytes()));
+                    ctx.writeAndFlush(new FileTransferProtocol(2, tagsFilePath.getBytes()));
                     break;
                 case 2:
                     logger.info("Finish outsource process");
@@ -192,15 +192,15 @@ public class Client {
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             challengeData = cloudObjectStorageIntegrityChecking.audit(460);
             logger.info("Send challenge data");
-            CoolProtocol coolProtocol = new CoolProtocol(3, (filePath + ".challenge").getBytes(), serialize(challengeData));
-            ctx.writeAndFlush(coolProtocol);
+            FileTransferProtocol fileTransferProtocol = new FileTransferProtocol(3, (filePath + ".challenge").getBytes(), serialize(challengeData));
+            ctx.writeAndFlush(fileTransferProtocol);
         }
 
         @Override
         public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
             // receive proof data
-            CoolProtocol coolProtocolReceived = (CoolProtocol) msg;
-            ProofData proofData = (ProofData) deserialize(coolProtocolReceived.content);
+            FileTransferProtocol fileTransferProtocolReceived = (FileTransferProtocol) msg;
+            ProofData proofData = (ProofData) deserialize(fileTransferProtocolReceived.content);
             ctx.close();
             logger.info("Receive proof data");
 

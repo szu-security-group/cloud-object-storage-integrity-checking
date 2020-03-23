@@ -48,8 +48,8 @@ public class Server {
                         @Override
                         protected void initChannel(SocketChannel ch) {
                             // 添加自定义协议的编解码工具
-                            ch.pipeline().addLast(new CoolProtocolEncoder());
-                            ch.pipeline().addLast(new CoolProtocolDecoder());
+                            ch.pipeline().addLast(new FileTransferProtocolEncoder());
+                            ch.pipeline().addLast(new FileTransferProtocolDecoder());
                             // 处理服务器端操作
                             ch.pipeline().addLast(new ServerHandler());
                         }
@@ -72,13 +72,13 @@ public class Server {
             int filePathLength = 0;
             byte[] filePathBytes;
             String filePath;
-            CoolProtocol coolProtocol;
-            CoolProtocol coolProtocolReceived = (CoolProtocol) msg;
+            FileTransferProtocol fileTransferProtocol;
+            FileTransferProtocol fileTransferProtocolReceived = (FileTransferProtocol) msg;
 
-            String filename = (new File(new String(coolProtocolReceived.filename))).getName();
+            String filename = (new File(new String(fileTransferProtocolReceived.filename))).getName();
             boolean needDelete = true;
 
-            switch (coolProtocolReceived.op) {
+            switch (fileTransferProtocolReceived.op) {
                 case 0:
                     filePathLength = filename.length();
                 case 1:
@@ -95,7 +95,7 @@ public class Server {
                     File file = new File(pathPrefix + filename);
                     file.createNewFile();
                     FileOutputStream fileOutputStream = new FileOutputStream(file);
-                    fileOutputStream.write(coolProtocolReceived.content);
+                    fileOutputStream.write(fileTransferProtocolReceived.content);
                     fileOutputStream.close();
                     logger.info("Receive {}.", filename);
                     // upload file
@@ -111,8 +111,8 @@ public class Server {
                     filePathBytes = new byte[filePathLength];
                     System.arraycopy(filename.getBytes(), 0, filePathBytes, 0, filePathLength);
                     filePath = new String(filePathBytes);
-                    coolProtocol = new CoolProtocol(coolProtocolReceived.op, filePath.getBytes(), "".getBytes());
-                    ctx.writeAndFlush(coolProtocol);
+                    fileTransferProtocol = new FileTransferProtocol(fileTransferProtocolReceived.op, filePath.getBytes(), "".getBytes());
+                    ctx.writeAndFlush(fileTransferProtocol);
                     break;
 
                 case 3:
@@ -121,15 +121,15 @@ public class Server {
                     System.arraycopy(filename.getBytes(), 0, filePathBytes, 0, filePathLength);
                     filePath = new String(filePathBytes);
                     logger.info("Receive audit request. Audit file is {}", filePath);
-                    ChallengeData challengeData = (ChallengeData) deserialize(coolProtocolReceived.content);
+                    ChallengeData challengeData = (ChallengeData) deserialize(fileTransferProtocolReceived.content);
                     logger.info("Receive challenge data.");
                     logger.info("Start prove process.");
                     ProofData proofData = prove(filePath, challengeData, filePath);
                     logger.info("Finish prove process.");
                     String proofFilePath = pathPrefix + filePath + ".proof";
                     logger.info("Send proof data.");
-                    coolProtocol = new CoolProtocol(5, proofFilePath.getBytes(), serialize(proofData));
-                    ctx.writeAndFlush(coolProtocol);
+                    fileTransferProtocol = new FileTransferProtocol(5, proofFilePath.getBytes(), serialize(proofData));
+                    ctx.writeAndFlush(fileTransferProtocol);
                     break;
 
                 default:

@@ -4,11 +4,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 
-public class CoolProtocolEncoder  extends MessageToByteEncoder<CoolProtocol> {
+public class FileTransferProtocolEncoder extends MessageToByteEncoder<FileTransferProtocol> {
 
     @Override
-    protected void encode(ChannelHandlerContext tcx, CoolProtocol msg, ByteBuf out) throws Exception {
-        out.writeInt(CoolProtocol.magicNumber);
+    protected void encode(ChannelHandlerContext tcx, FileTransferProtocol msg, ByteBuf out) throws Exception {
+        out.writeInt(FileTransferProtocol.magicNumber);
 
         out.writeInt(msg.op);
         out.writeInt(msg.filenameLength);

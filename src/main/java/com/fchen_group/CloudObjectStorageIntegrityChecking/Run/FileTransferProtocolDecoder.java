@@ -6,7 +6,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 
 import java.util.List;
 
-public class CoolProtocolDecoder extends ByteToMessageDecoder {
+public class FileTransferProtocolDecoder extends ByteToMessageDecoder {
     /**
      * <pre>
      * 协议开始的标准head_data，int类型，占据4个字节.
@@ -29,7 +29,7 @@ public class CoolProtocolDecoder extends ByteToMessageDecoder {
                 // 标记包头开始的index
                 buffer.markReaderIndex();
                 // 读到了协议的开始标志，结束while循环
-                if (buffer.readInt() == CoolProtocol.magicNumber) {
+                if (buffer.readInt() == FileTransferProtocol.magicNumber) {
                     break;
                 }
 
@@ -65,7 +65,7 @@ public class CoolProtocolDecoder extends ByteToMessageDecoder {
             byte[] content = new byte[contentLength];
             buffer.readBytes(content);
 
-            CoolProtocol protocol = new CoolProtocol(op, filename, content);
+            FileTransferProtocol protocol = new FileTransferProtocol(op, filename, content);
             out.add(protocol);
         }
     }

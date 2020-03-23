@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-public class CoolProtocol {
+public class FileTransferProtocol {
     public static int magicNumber = 329;
 
     public int op;
@@ -13,7 +13,7 @@ public class CoolProtocol {
     public byte[] filename;
     public byte[] content;
 
-    public CoolProtocol(int op, byte[] filename) {
+    public FileTransferProtocol(int op, byte[] filename) {
         this.op = op;
         this.filenameLength = filename.length;
         this.filename = filename;
@@ -29,7 +29,7 @@ public class CoolProtocol {
         }
     }
 
-    public CoolProtocol(int op, byte[] filename, byte[] content) {
+    public FileTransferProtocol(int op, byte[] filename, byte[] content) {
         this.op = op;
         this.filenameLength = filename.length;
         this.filename = filename;
