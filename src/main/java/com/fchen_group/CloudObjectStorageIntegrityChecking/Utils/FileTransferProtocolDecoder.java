@@ -8,63 +8,66 @@ import java.util.List;
 
 public class FileTransferProtocolDecoder extends ByteToMessageDecoder {
     /**
-     * <pre>
-     * 协议开始的标准head_data，int类型，占据4个字节.
-     * 表示文件名的长度filenameLength，int类型，占据4个字节.
-     * 表示数据的长度contentLength，int类型，占据4个字节.
-     * </pre>
+     * The first 4 bytes of content is operation code
+     * Then 4 bytes the length of filename
+     * Then 4 bytes the length of the content of file
+     * And the rest is the filename and content of file
+     *
+     * +----------------+----------------+----------------+---------------------------------+
+     * +     op code    + filenameLength +  contentLength +     filename and content        +
+     * +                +                +                +                                 +
+     * +       4B       +       4B       +       4B       +           the rest              +
+     * +----------------+----------------+----------------+---------------------------------+
      */
+
+    // if the content of file is null, base length of FileTransferProtocol is 4B * 3
     public final int BASE_LENGTH = 4 + 4 + 4;
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) throws Exception {
-        // 可读长度必须大于基本长度
+        // Readable length must be greater than base length
         if (buffer.readableBytes() >= BASE_LENGTH) {
-            // 记录包头开始的index
+            // the index of the header
             int beginReader;
 
             while (true) {
-                // 获取包头开始的index
+                // get the index of the header
                 beginReader = buffer.readerIndex();
-                // 标记包头开始的index
+                // record the index of the header
                 buffer.markReaderIndex();
-                // 读到了协议的开始标志，结束while循环
+                // reach the start of the protocol (magic number), end the while loop
                 if (buffer.readInt() == FileTransferProtocol.magicNumber) {
                     break;
                 }
 
-                // 未读到包头，略过一个字节
-                // 每次略过，一个字节，去读取，包头信息的开始标记
+                // ignore data (try to read magic number)
                 buffer.resetReaderIndex();
                 buffer.readByte();
 
-                // 当略过，一个字节之后，
-                // 数据包的长度，又变得不满足
-                // 此时，应该结束。等待后面的数据到达
+                // Wait for subsequent data to arrive
                 if (buffer.readableBytes() < BASE_LENGTH) {
                     return;
                 }
             }
 
-            // 消息的长度
             int op = buffer.readInt();
             int filenameLength = buffer.readInt();
             int contentLength = buffer.readInt();
-            // System.out.printf("buffer.readableBytes(): %d\n", buffer.readableBytes());
 
-            // 判断请求数据包数据是否到齐
+            // check whether the requested packet data is completely received
             if (buffer.readableBytes() < filenameLength + contentLength) {
-                // 还原读指针
+                // reset read index
                 buffer.readerIndex(beginReader);
                 return;
             }
 
-            // 读取data数据
+            // read filename and content
             byte[] filename = new byte[filenameLength];
             buffer.readBytes(filename);
             byte[] content = new byte[contentLength];
             buffer.readBytes(content);
 
+            // restore file and output it
             FileTransferProtocol protocol = new FileTransferProtocol(op, filename, content);
             out.add(protocol);
         }

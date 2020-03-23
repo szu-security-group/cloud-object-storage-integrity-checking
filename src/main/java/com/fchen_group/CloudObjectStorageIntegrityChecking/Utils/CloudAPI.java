@@ -15,16 +15,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+/**
+ * Provide a unified interface to access the cloud object store.
+ * Class CloudAPI has two function:
+ *     uploadFile => upload the whole file to cloud object store
+ *     downloadPartFile => download a part of file from cloud object store
+ */
 public class CloudAPI {
     private COSClient cosClient;
     private String bucketName;
 
+    /**
+     * Initial cloud object store client.
+     * @param COSConfigFilePath the path of file which store the configuration of cloud object store
+     */
     public CloudAPI(String COSConfigFilePath) {
         String COSSecretId = null;
         String COSSecretKey = null;
         String regionName = null;
 
-        // 从配置文件获取 COSSecretId, COSSecretKey
+        // read configuration file
         try {
             FileInputStream propertiesFIS = new FileInputStream(COSConfigFilePath);
             Properties properties = new Properties();
@@ -38,13 +48,13 @@ public class CloudAPI {
             e.printStackTrace();
         }
 
-        // 检查变量是否为空
+        // check if variables are null
         assert COSSecretId != null;
         assert COSSecretKey != null;
         assert regionName != null;
         assert bucketName != null;
 
-        // 初始化 cos 客户端
+        // initial cloud object store client
         COSCredentials cosCredentials = new BasicCOSCredentials(COSSecretId, COSSecretKey);
         Region region = new Region(regionName);
         ClientConfig clientConfig = new ClientConfig(region);
@@ -52,9 +62,9 @@ public class CloudAPI {
     }
 
     /**
-     * 将云端文件下载到本地
-     * @param localFileName 本地文件路径
-     * @param cloudFileName 云端文件路径
+     * upload file to cloud
+     * @param localFileName the path of local file
+     * @param cloudFileName the path of cloud file
      */
     public void uploadFile(String localFileName, String cloudFileName) {
         File localFile = new File(localFileName);
@@ -62,11 +72,11 @@ public class CloudAPI {
     }
 
     /**
-     * 下载部分文件数据
-     * @param cloudFileName 云端文件名字
-     * @param startPos 起始位置
-     * @param length 数据的长度
-     * @return 从起始位置（包含）开始，总计长度为 length 的 byte[] 数据
+     * download partial file from cloud
+     * @param cloudFileName the path of cloud file
+     * @param startPos the start position of the partial file
+     * @param length the length of the partial file
+     * @return a byte array containing part of the file
      */
     public byte[] downloadPartFile(String cloudFileName, long startPos, int length) {
         // initialization

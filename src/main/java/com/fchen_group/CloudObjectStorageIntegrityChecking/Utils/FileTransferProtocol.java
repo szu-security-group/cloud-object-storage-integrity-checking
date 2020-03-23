@@ -4,6 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+/**
+ * FileTransferProtocol is a protocol for transferring operation code and file content.
+ * operation code (op) indicates which audit stage the file belongs to.
+ */
 public class FileTransferProtocol {
     public static int magicNumber = 329;
 
@@ -13,6 +17,11 @@ public class FileTransferProtocol {
     public byte[] filename;
     public byte[] content;
 
+    /**
+     * Read file content from local storage
+     * @param op operation code
+     * @param filename the name of the file to be transferred
+     */
     public FileTransferProtocol(int op, byte[] filename) {
         this.op = op;
         this.filenameLength = filename.length;
@@ -29,6 +38,12 @@ public class FileTransferProtocol {
         }
     }
 
+    /**
+     * Read file content from byte array
+     * @param op operation code
+     * @param filename the name of the file to be transferred
+     * @param content the content of the file to be transferred
+     */
     public FileTransferProtocol(int op, byte[] filename, byte[] content) {
         this.op = op;
         this.filenameLength = filename.length;
