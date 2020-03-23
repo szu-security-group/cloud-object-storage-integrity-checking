@@ -1,14 +1,15 @@
 package com.fchen_group.CloudObjectStorageIntegrityChecking.Run;
 
-import com.fchen_group.CloudObjectStorageIntegrityChecking.main.CloudObjectStorageIntegrityChecking;
-import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ChallengeData;
-import com.fchen_group.CloudObjectStorageIntegrityChecking.main.Key;
-import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ProofData;
-import com.javamex.classmexer.MemoryUtil;
-
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+
+import com.javamex.classmexer.MemoryUtil;
+
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.CloudObjectStorageIntegrityChecking;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ChallengeData;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.Key;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ProofData;
 
 public class Benchmark {
     private String filename;

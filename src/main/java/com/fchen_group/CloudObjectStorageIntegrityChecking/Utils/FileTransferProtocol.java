@@ -1,4 +1,4 @@
-package com.fchen_group.CloudObjectStorageIntegrityChecking.Run;
+package com.fchen_group.CloudObjectStorageIntegrityChecking.Utils;
 
 import java.io.File;
 import java.io.FileInputStream;

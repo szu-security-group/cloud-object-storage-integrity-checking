@@ -10,12 +10,16 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-
-import com.fchen_group.CloudObjectStorageIntegrityChecking.main.CloudObjectStorageIntegrityChecking;
-import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ChallengeData;
-import com.fchen_group.CloudObjectStorageIntegrityChecking.main.ProofData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.CloudObjectStorageIntegrityChecking;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ChallengeData;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ProofData;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.CloudAPI;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocol;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocolDecoder;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocolEncoder;
 
 public class Server {
     private static Logger logger = LoggerFactory.getLogger("server");

@@ -1,4 +1,4 @@
-package com.fchen_group.CloudObjectStorageIntegrityChecking.main;
+package com.fchen_group.CloudObjectStorageIntegrityChecking.Core;
 
 import java.io.Serializable;
 import java.math.BigInteger;
