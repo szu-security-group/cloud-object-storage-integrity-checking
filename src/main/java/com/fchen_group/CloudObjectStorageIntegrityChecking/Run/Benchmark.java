@@ -1,8 +1,10 @@
 package com.fchen_group.CloudObjectStorageIntegrityChecking.Run;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 
 import com.javamex.classmexer.MemoryUtil;
 
@@ -20,7 +22,7 @@ public class Benchmark {
     // then average the result.
     public final static int LOOP_TIMES = 10;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         String filepath = args[0];
         (new Benchmark(filepath)).run();
     }
@@ -33,11 +35,11 @@ public class Benchmark {
     /**
      * This is the main function to evaluate the performance.
      */
-    public void run() throws IOException {
+    public void run() {
         randomizedAudit();
     }
 
-    private void randomizedAudit() throws IOException {
+    private void randomizedAudit() {
         long storage = 0;
         long communication = 0;
         long[] time = new long[5];   // 0: key generation; 1: outsource; 2: audit; 3: prove;4: verify.
@@ -59,10 +61,26 @@ public class Benchmark {
         endTime = System.nanoTime();
         time[1] = endTime - startTime;
 
-        //Carry a large integer space
-        storage = MemoryUtil.deepMemoryUsageOf(tags);
-
-        // System.out.println(".....Auditting.....\n");
+        // Calculate the storage cost
+        try {
+            byte[] bytesFromTag;
+            byte[] bytesToWrite = new byte[17];
+            File tagsFile = new File("tempTagsFile");
+            if (!tagsFile.exists())
+                tagsFile.createNewFile();
+            FileOutputStream tagsFOS = new FileOutputStream(tagsFile);
+            for (BigInteger tag : tags) {
+                bytesFromTag = tag.toByteArray();
+                Arrays.fill(bytesToWrite, (byte) 0);
+                System.arraycopy(bytesFromTag, 0, bytesToWrite, 17 - bytesFromTag.length, bytesFromTag.length);
+                tagsFOS.write(bytesToWrite);
+            }
+            tagsFOS.close();
+            storage = tagsFile.length();
+            tagsFile.delete();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         boolean b;
         int count = 0, challengeLen = 460;
