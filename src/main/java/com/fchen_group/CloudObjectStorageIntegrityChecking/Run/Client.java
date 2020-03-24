@@ -242,20 +242,16 @@ public class Client {
     }
 
     public static void show_help() {
-        System.out.print("使用方法：\n" +
-                "客户端在审计过程中有两个阶段：outsource 阶段和 audit 阶段\n" +
+        System.out.print("Usage:\n" +
+                "java -jar client.jar <SERVER_IP> <COMMAND> <FILENAME> <[SECTOR_NUMBER]>\n" +
                 "\n" +
-                "启动 outsource 的命令为：\n" +
-                "    java -jar client.jar [SERVER_IP] outsource [filename] [SECTOR_NUMBER]\n" +
-                "注：\n" +
-                "    在 outsource 完成之后，程序会在文件所在目录生成以下文件\n" +
-                "        [filename].key  [filename].tags  [filename].properties\n" +
-                "    这三个文件在 audit 阶段中需要用到，请妥善保管好！\n" +
+                "SERVER_IP     - The audit server running server.jar\n" +
+                "COMMAND       - There are two commands: \"outsource\" and \"audit\"\n" +
+                "FILENAME      - The file you want to audit\n" +
+                "SECTOR_NUMBER - The number of sectors in one block (Only need in outsource stage)\n" +
                 "\n" +
-                "启动 audit 的命令为：\n" +
-                "    java -jar client.jar [SERVER_IP] audit [filename]\n" +
-                "注：\n" +
-                "    运行 audit 需要 outsource 阶段生成的三个文件：\n" +
-                "        [filename].key  [filename].tags  [filename].properties\n");
+                "For example:\n" +
+                "In outsource stage: java -jar client.jar 127.0.0.1 outsource /path/to/file 64\n" +
+                "In audit stage:     java -jar client.jar 127.0.0.1 audit /path/to/file\n");
     }
 }

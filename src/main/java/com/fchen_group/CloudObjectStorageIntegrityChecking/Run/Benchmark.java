@@ -117,7 +117,7 @@ public class Benchmark {
             time[4] = time[4] + (endTime - startTime);
 
             sumTime = auditTime + proveTime + verifyTime;
-            System.out.printf("%s 第%d次,%d,%d,%d,%d,%d,%d\n", this.filename, i + 1,
+            System.out.printf("%s the %dth time,%d,%d,%d,%d,%d,%d\n", this.filename, i + 1,
                     auditTime, proveTime, verifyTime, sumTime, storage, singleCommunication);
 
             if (!b)
@@ -129,7 +129,7 @@ public class Benchmark {
         time[4] = (time[4] / LOOP_TIMES);
         communication = (communication / LOOP_TIMES);
 
-        System.out.printf("%s %d次平均,%d,%d,%d,%d,%d,%d\n", this.filename, LOOP_TIMES,
+        System.out.printf("%s average of %d times,%d,%d,%d,%d,%d,%d\n", this.filename, LOOP_TIMES,
                 time[2], time[3], time[4], time[2] + time[3] + time[4], storage, communication);
 
         System.out.println("verification error: " + count);

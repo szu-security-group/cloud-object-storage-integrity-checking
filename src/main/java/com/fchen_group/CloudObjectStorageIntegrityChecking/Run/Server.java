@@ -195,10 +195,13 @@ public class Server {
     }
 
     public static void show_help() {
-        System.out.println("使用方法：\n" +
-                "    java -jar server.jar [tempPath] [COSPropertiesPath]\n" +
-                "其中：\n" +
-                "    tempPath 是服务器用于暂存客户端上传来的文件的目录\n" +
-                "    COSPropertiesPath 是保存 COS 密钥信息等的配置文件的路径\n");
+        System.out.println("Usage:\n" +
+                "java -jar server.jar <temporaryDirectory> <COSPropertiesPath>\n" +
+                "\n" +
+                "temporaryDirectory - The directory used by the server to temporarily store uploaded files\n" +
+                "COSPropertiesPath  - Path to the configuration file where COS information is store\n" +
+                "\n" +
+                "For example:\n" +
+                "java -jar server.jar /path/to/temporary-upload-directory /path/to/COS-properties-file");
     }
 }
