@@ -20,6 +20,7 @@ import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.CloudAPI;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocol;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocolDecoder;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocolEncoder;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.Serialization;
 
 public class Server {
     private static Logger logger = LoggerFactory.getLogger("server");
@@ -125,14 +126,14 @@ public class Server {
                     System.arraycopy(filename.getBytes(), 0, filePathBytes, 0, filePathLength);
                     filePath = new String(filePathBytes);
                     logger.info("Receive audit request. Audit file is {}", filePath);
-                    ChallengeData challengeData = (ChallengeData) deserialize(fileTransferProtocolReceived.content);
+                    ChallengeData challengeData = (ChallengeData) Serialization.deserialize(fileTransferProtocolReceived.content);
                     logger.info("Receive challenge data.");
                     logger.info("Start prove process.");
                     ProofData proofData = prove(filePath, challengeData, filePath);
                     logger.info("Finish prove process.");
                     String proofFilePath = pathPrefix + filePath + ".proof";
                     logger.info("Send proof data.");
-                    fileTransferProtocol = new FileTransferProtocol(5, proofFilePath.getBytes(), serialize(proofData));
+                    fileTransferProtocol = new FileTransferProtocol(5, proofFilePath.getBytes(), Serialization.serialize(proofData));
                     ctx.writeAndFlush(fileTransferProtocol);
                     break;
 
@@ -190,19 +191,6 @@ public class Server {
         // calc Proof and return
         logger.info("Calculate proof.");
         return cloudObjectStorageIntegrityChecking.prove(sourceFileData, tags, challengeData);
-    }
-
-    public static byte[] serialize(Object object) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-        objectOutputStream.writeObject(object);
-        return byteArrayOutputStream.toByteArray();
-    }
-
-    public static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
-        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
-        return objectInputStream.readObject();
     }
 
     public static void show_help() {

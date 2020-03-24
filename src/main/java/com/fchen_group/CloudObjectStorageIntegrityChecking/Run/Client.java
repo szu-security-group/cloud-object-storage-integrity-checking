@@ -20,6 +20,7 @@ import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ProofData;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocol;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocolDecoder;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.FileTransferProtocolEncoder;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.Serialization;
 
 public class Client {
     private static Logger logger = LoggerFactory.getLogger("client");
@@ -125,7 +126,7 @@ public class Client {
             if (!keyFile.exists())
                 keyFile.createNewFile();
             FileOutputStream keyFOS = new FileOutputStream(keyFile);
-            keyFOS.write(serialize(key));
+            keyFOS.write(Serialization.serialize(key));
             keyFOS.close();
             logger.info("Generate key and store it to {}", keyFile);
 
@@ -195,7 +196,7 @@ public class Client {
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             challengeData = cloudObjectStorageIntegrityChecking.audit(460);
             logger.info("Send challenge data");
-            FileTransferProtocol fileTransferProtocol = new FileTransferProtocol(3, (filePath + ".challenge").getBytes(), serialize(challengeData));
+            FileTransferProtocol fileTransferProtocol = new FileTransferProtocol(3, (filePath + ".challenge").getBytes(), Serialization.serialize(challengeData));
             ctx.writeAndFlush(fileTransferProtocol);
         }
 
@@ -203,7 +204,7 @@ public class Client {
         public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
             // receive proof data
             FileTransferProtocol fileTransferProtocolReceived = (FileTransferProtocol) msg;
-            ProofData proofData = (ProofData) deserialize(fileTransferProtocolReceived.content);
+            ProofData proofData = (ProofData) Serialization.deserialize(fileTransferProtocolReceived.content);
             ctx.close();
             logger.info("Receive proof data");
 
@@ -237,19 +238,6 @@ public class Client {
             cause.printStackTrace();
             ctx.close();
         }
-    }
-
-    public static byte[] serialize(Object object) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-        objectOutputStream.writeObject(object);
-        return byteArrayOutputStream.toByteArray();
-    }
-
-    public static Object deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
-        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
-        return objectInputStream.readObject();
     }
 
     public static void show_help() {
