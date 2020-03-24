@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
 
-import com.javamex.classmexer.MemoryUtil;
-
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.CloudObjectStorageIntegrityChecking;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ChallengeData;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.Key;
@@ -91,8 +89,6 @@ public class Benchmark {
             ChallengeData c;
             startTime = System.nanoTime();
             ChallengeData challengeData = cloudObjectStorageIntegrityChecking.audit(challengeLen);
-            System.out.println(MemoryUtil.deepMemoryUsageOf(challengeData.indices)
-                    + MemoryUtil.deepMemoryUsageOf(challengeData.coefficients));
             endTime = System.nanoTime();
             auditTime = endTime - startTime;
             time[2] = time[2] + (endTime - startTime);

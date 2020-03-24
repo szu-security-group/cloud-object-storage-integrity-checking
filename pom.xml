@@ -99,13 +99,6 @@
             <version>1.7.25</version>
         </dependency>
         <dependency>
-            <groupId>com.javamex</groupId>
-            <artifactId>classmexer</artifactId>
-            <version>1.6.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/classmexer.jar</systemPath>
-        </dependency>
-        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
             <version>4.1.44.Final</version>
