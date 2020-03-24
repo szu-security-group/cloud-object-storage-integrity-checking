@@ -12,6 +12,7 @@ import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.CloudObjectStora
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ChallengeData;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.Key;
 import com.fchen_group.CloudObjectStorageIntegrityChecking.Core.ProofData;
+import com.fchen_group.CloudObjectStorageIntegrityChecking.Utils.Serialization;
 
 public class Benchmark {
     private String filename;
@@ -103,8 +104,13 @@ public class Benchmark {
             proveTime = endTime - startTime;
             time[3] = time[3] + (endTime - startTime);
             //The cost of communication
-            singleCommunication = MemoryUtil.deepMemoryUsageOf(proofData.u) + MemoryUtil.deepMemoryUsageOf(proofData.o);
-            communication = communication + MemoryUtil.deepMemoryUsageOf(proofData);
+            singleCommunication = 0;
+            try {
+                singleCommunication = Serialization.serialize(proofData).length;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            communication = communication + singleCommunication;
 
             startTime = System.nanoTime();
             b = cloudObjectStorageIntegrityChecking.verify(key, challengeData, proofData);
