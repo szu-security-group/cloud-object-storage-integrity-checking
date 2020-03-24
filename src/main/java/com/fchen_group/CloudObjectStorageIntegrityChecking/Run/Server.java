@@ -41,25 +41,23 @@ public class Server {
     }
 
     public void run() throws Exception {
-        // 配置NIO线程组
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
-            // 服务器辅助启动类配置
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
-                            // 添加自定义协议的编解码工具
+                            // add protocol encoder and decoder
                             ch.pipeline().addLast(new FileTransferProtocolEncoder());
                             ch.pipeline().addLast(new FileTransferProtocolDecoder());
-                            // 处理服务器端操作
+                            // add handler
                             ch.pipeline().addLast(new ServerHandler());
                         }
                     })
-                    .option(ChannelOption.SO_BACKLOG, 1024) // 设置tcp缓冲区
+                    .option(ChannelOption.SO_BACKLOG, 1024)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
             logger.info("Start server and listen at port 9999.");
@@ -83,6 +81,9 @@ public class Server {
             String filename = (new File(new String(fileTransferProtocolReceived.filename))).getName();
             boolean needDelete = true;
 
+            // op indicates the stage
+            // Server will only start proof process during the audit stage.
+            // In the other stages, server will store the file uploaded by client.
             switch (fileTransferProtocolReceived.op) {
                 case 0:
                     filePathLength = filename.length();
@@ -159,11 +160,11 @@ public class Server {
         logger.info("BLOCK_NUMBER: {}, SECTOR_NUMBER: {}.", BLOCK_NUMBER, SECTOR_NUMBER);
         CloudObjectStorageIntegrityChecking cloudObjectStorageIntegrityChecking = new CloudObjectStorageIntegrityChecking(filePath, BLOCK_NUMBER, SECTOR_NUMBER);
 
-        // 声明下载源文件所需变量
+        // variables of the source file
         long blockStart;
         byte[] sourceFileBlock;
         byte[][][] sourceFileData = new byte[challengeData.indices.length][SECTOR_NUMBER][16];
-        // 声明下载 tags 文件所需变量
+        // variables of the tags file
         long tagsStart;
         byte[] tagsFileBlock;
         BigInteger[] tags = new BigInteger[BLOCK_NUMBER];

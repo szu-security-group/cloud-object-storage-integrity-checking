@@ -42,7 +42,7 @@ public class Benchmark {
         long storage = 0;
         long communication = 0;
         long[] time = new long[5];   // 0: key generation; 1: outsource; 2: audit; 3: prove;4: verify.
-        long startTime = 0, endTime = 0;
+        long startTime, endTime;
 
         //Initializes an object
         CloudObjectStorageIntegrityChecking cloudObjectStorageIntegrityChecking = new CloudObjectStorageIntegrityChecking(this.filePath, 64);
@@ -54,7 +54,6 @@ public class Benchmark {
         time[0] = endTime - startTime;
 
         // outsource
-        // System.out.println("\n-----Outsource-----\n");
         startTime = System.nanoTime();
         BigInteger[] tags = cloudObjectStorageIntegrityChecking.outsource(key);
         endTime = System.nanoTime();
@@ -86,16 +85,18 @@ public class Benchmark {
         long auditTime, proveTime, verifyTime, sumTime, singleCommunication;
 
         for (int i = 0; i < LOOP_TIMES; i++) {
-            ChallengeData c;
+            // audit
+            ChallengeData challengeData;
             startTime = System.nanoTime();
-            ChallengeData challengeData = cloudObjectStorageIntegrityChecking.audit(challengeLen);
+            challengeData = cloudObjectStorageIntegrityChecking.audit(challengeLen);
             endTime = System.nanoTime();
             auditTime = endTime - startTime;
             time[2] = time[2] + (endTime - startTime);
 
-            ProofData proof;
+            // proof
+            ProofData proofData;
             startTime = System.nanoTime();
-            ProofData proofData = cloudObjectStorageIntegrityChecking.prove(tags, challengeData);
+            proofData = cloudObjectStorageIntegrityChecking.prove(tags, challengeData);
             endTime = System.nanoTime();
             proveTime = endTime - startTime;
             time[3] = time[3] + (endTime - startTime);
@@ -108,6 +109,7 @@ public class Benchmark {
             }
             communication = communication + singleCommunication;
 
+            // verify
             startTime = System.nanoTime();
             b = cloudObjectStorageIntegrityChecking.verify(key, challengeData, proofData);
             endTime = System.nanoTime();
@@ -115,7 +117,8 @@ public class Benchmark {
             time[4] = time[4] + (endTime - startTime);
 
             sumTime = auditTime + proveTime + verifyTime;
-            System.out.printf("%s 第%d次,%d,%d,%d,%d,%d,%d\n", this.filename, i + 1, auditTime, proveTime, verifyTime, sumTime, storage, singleCommunication);
+            System.out.printf("%s 第%d次,%d,%d,%d,%d,%d,%d\n", this.filename, i + 1,
+                    auditTime, proveTime, verifyTime, sumTime, storage, singleCommunication);
 
             if (!b)
                 count++;
@@ -126,7 +129,8 @@ public class Benchmark {
         time[4] = (time[4] / LOOP_TIMES);
         communication = (communication / LOOP_TIMES);
 
-        System.out.printf("%s %d次平均,%d,%d,%d,%d,%d,%d\n", this.filename, LOOP_TIMES, time[2], time[3], time[4], time[2] + time[3] + time[4], storage, communication);
+        System.out.printf("%s %d次平均,%d,%d,%d,%d,%d,%d\n", this.filename, LOOP_TIMES,
+                time[2], time[3], time[4], time[2] + time[3] + time[4], storage, communication);
 
         System.out.println("verification error: " + count);
     }

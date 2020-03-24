@@ -84,20 +84,18 @@ public class Client {
     }
 
     public void run() throws Exception {
-        // 配置客户端NIO线程组
         EventLoopGroup group = new NioEventLoopGroup();
         try {
-            // 客户端辅助启动类 对客户端配置
             Bootstrap b = new Bootstrap();
             b.group(group)
                     .channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
-                            // 添加自定义协议的编解码工具
+                            // add protocol encoder and decoder
                             ch.pipeline().addLast(new FileTransferProtocolEncoder());
                             ch.pipeline().addLast(new FileTransferProtocolDecoder());
-                            // 处理客户端操作
+                            // add handler corresponding to the command
                             if (command.equals("outsource"))
                                 ch.pipeline().addLast(new ClientOutsourceHandler());
                             else
@@ -106,6 +104,7 @@ public class Client {
                     })
                     .option(ChannelOption.TCP_NODELAY, true);
 
+            // connect to server
             serverPort = 9999;
             logger.info("Connect to {}:{}.", serverAddress, serverPort);
             ChannelFuture f = b.connect(serverAddress, serverPort).sync();
@@ -168,6 +167,8 @@ public class Client {
 
         @Override
         public void channelRead0(ChannelHandlerContext ctx, Object msg) {
+            // op indicates the file that client just sent, then send the next file
+            // if all files have been sent, close communication with the server
             switch (((FileTransferProtocol) msg).op) {
                 case 0:
                     logger.info("Send properties file {}", propertiesFilePath);
@@ -208,7 +209,7 @@ public class Client {
             ctx.close();
             logger.info("Receive proof data");
 
-            // get key
+            // get key from local file
             Key key;
             try {
                 FileInputStream keyFIS = new FileInputStream(keyFilePath);
@@ -223,7 +224,7 @@ public class Client {
             }
             logger.info("Get key from {}.", keyFilePath);
 
-            // verify
+            // verify result from the server
             logger.info("Verifying proof.");
             boolean verifyResult = cloudObjectStorageIntegrityChecking.verify(key, challengeData, proofData);
             logger.info("Verify result is {}", verifyResult);
