@@ -20,7 +20,7 @@ We provide compiled versions on the [release](https://github.com/fchen-group/clo
 
 **Server**
 
-Before running the server, you need to specify the temporary file location that is to be outourced to a public cloud ojbect storage service and the COS properties file that contains the cloud storage access credentials. [Here](COS.properties.example) is a template for COS properties file. After all preparations are done, one could run a command in terminal to start server as follows:
+Before running the server, one needs to specify the temporary file location that is to be outourced to a public cloud ojbect storage service and the COS properties file that contains the cloud storage access credentials. [Here](COS.properties.example) is a template for COS properties file. After all preparations are done, one could run a command in terminal to start server as follows:
 
 ```
 java -jar server.jar /path/to/temporary-upload-directory /path/to/COS-properties-file
@@ -34,7 +34,7 @@ The client's command format is like this:
 java -jar client.jar SERVER_IP COMMAND FILENAME [SECTOR_NUMBER]
 ```
 
-One needs to specify the server's ip, command (`outsource` or `audit`), and the name of the file. The `SECTOR_NUMBER` is only used in the outsource stage.
+One needs to specify the server's ip, command (`outsource` or `audit`), and the name of the file. The `SECTOR_NUMBER` is only used in the outsourcing stage.
 
 ## Contributing
 
