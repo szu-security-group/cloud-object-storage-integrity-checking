@@ -1,4 +1,4 @@
-# cloud-object-storage-integrity-checking
+# cloud object storage integrity checking
 
 COS-integrity-checking (cloud-object-storage-integrity-checking) is a cloud storage auditing system that works for current main-stream cloud object storage services. This system is designed over existing proof of data possession (PDP) schemes. We further make them practical as well as usable in the real world.
 
