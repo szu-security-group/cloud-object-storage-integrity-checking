@@ -4,7 +4,7 @@ from functools import reduce
 
 
 def count_challenge(n):
-    count = int(4 * n ** 0.5)  # upper bound for challenge lentgh
+    count = int(4 * n ** 0.5)  # upper bound for the challenge lentgh
     blocks_broken = int(n * 0.01)
     temp = [(n - blocks_broken - i) / n for i in range(count)]
     for i in range(count):
