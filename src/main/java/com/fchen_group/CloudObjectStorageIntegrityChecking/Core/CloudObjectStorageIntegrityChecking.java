@@ -132,7 +132,7 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
     /**
      * Generate audit indexes and coefficients based on challenge length.
      * @param challengeLen : length of challenge (default is 460)
-     * @return challenge which will be sent to sever
+     * @return challenge which will be sent to server
      */
     public ChallengeData audit(int challengeLen) {
         Random random = new Random();
