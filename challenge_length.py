@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# this is a script to compute the challenge length
 
 from functools import reduce
 
