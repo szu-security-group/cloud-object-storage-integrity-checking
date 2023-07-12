@@ -19,6 +19,7 @@ public class CloudObjectStorageIntegrityChecking extends AbstractAudit {
     private int BLOCK_NUMBER;
     private int SECTOR_NUMBER;
     private final int sectorLen = 16;  // 16bytes = 128bits
+    
     private Mac mac;
     private String filePath;
 
